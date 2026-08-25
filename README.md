@@ -1,3 +1,29 @@
+<!-- readme-lang-toggle-start -->
+<div align="right">
+  <strong>🌐 Language:</strong>
+  <button onclick="switchLang('zh')" id="btn-zh" style="background:#4a90e2;color:#fff;border:none;padding:4px 12px;margin:0 4px;border-radius:4px;cursor:pointer;">中文</button>
+  <button onclick="switchLang('en')" id="btn-en" style="background:#eee;color:#333;border:1px solid #ccc;padding:4px 12px;margin:0 4px;border-radius:4px;cursor:pointer;">English</button>
+</div>
+<script>
+function switchLang(lang) {
+  document.getElementById('zh-content').style.display = lang === 'zh' ? 'block' : 'none';
+  document.getElementById('en-content').style.display = lang === 'en' ? 'block' : 'none';
+  document.getElementById('btn-zh').style.background = lang === 'zh' ? '#4a90e2' : '#eee';
+  document.getElementById('btn-zh').style.color = lang === 'zh' ? '#fff' : '#333';
+  document.getElementById('btn-en').style.background = lang === 'en' ? '#4a90e2' : '#eee';
+  document.getElementById('btn-en').style.color = lang === 'en' ? '#fff' : '#333';
+  localStorage.setItem('lang', lang);
+}
+(function() {
+  const saved = localStorage.getItem('lang') || 'zh';
+  switchLang(saved);
+})();
+</script>
+<!-- readme-lang-toggle-end -->
+
+<!-- zh-content-start -->
+<div id="zh-content">
+
 # Obsidian Vault Search MCP
 
 > 用「自然语言」找笔记：只记得大概内容、几个关键词，也能从成千上万篇 Obsidian 笔记里精准找回。
@@ -16,17 +42,6 @@
 - **大模型可选可配**：支持 OpenAI / DeepSeek / 通义千问 / 智谱 GLM / 本地 llama.cpp 等任何 OpenAI 兼容端点；不配则降级为纯本地召回。
 - **跨客户端通用**：作为标准 MCP server，可在 WorkBuddy、Claude Desktop、Codex、Cline 等任意支持 MCP 的客户端中使用。
 - **零依赖**：仅用 Python 标准库，无需 `pip install`，不需要 API key 也能基础检索。
-
----
-
-## 相对早期版本的四大改造
-
-| # | 改造点 | 说明 |
-|---|--------|------|
-| ① | **知识库路径用户可配置** | 去掉硬编码的个人目录，改为 `VAULT_PATH`（命令行 / 环境变量 / `.env` / `config.json` 均可设），未设时给出清晰报错。 |
-| ② | **大模型可选可配** | 新增 `llm.py`（OpenAI 兼容协议）。通过 `LLM_*` 配置选择服务商与模型；未配置时自动降级为纯 BM25 召回，检索永不失效。 |
-| ③ | **增加归纳汇总功能** | 新增 `aggregate_notes` MCP 工具与 `aggregate` CLI 子命令：命中多篇关联笔记时调用 LLM 做归纳汇总，输出「合成摘要 + 来源笔记列表」。 |
-| ④ | **去本地化、通用化、可公开** | 移除所有个人路径/账号等硬编码与敏感信息；提供标准 README / LICENSE(MIT) / .gitignore / .env.example / config.example.json，任何人 `git clone` 后即可使用。 |
 
 ---
 
@@ -58,7 +73,7 @@
 要求 Python 3.8+（仅用标准库，无需安装任何第三方包）。
 
 ```bash
-git clone https://github.com/<your-username>/obsidian-vault-search-mcp.git
+git clone https://github.com/johnadams-bot/obsidian-vault-search-mcp.git
 cd obsidian-vault-search-mcp
 ```
 
@@ -86,118 +101,265 @@ VAULT_NAME=MyVault          # 可选，生成 obsidian:// 深链
 ```ini
 # OpenAI
 LLM_BASE_URL=https://api.openai.com/v1
-LLM_API_KEY=sk-xxx
+LLM_API_KEY=***
 LLM_MODEL=gpt-4o-mini
 
 # DeepSeek
 LLM_BASE_URL=https://api.deepseek.com/v1
-LLM_API_KEY=sk-xxx
+LLM_API_KEY=***
 LLM_MODEL=deepseek-chat
 
 # 通义千问 Qwen
 LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-LLM_API_KEY=sk-xxx
+LLM_API_KEY=***
 LLM_MODEL=qwen-plus
 
 # 智谱 GLM
-LLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
-LLM_API_KEY=xxx
+LLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
+LLM_API_KEY=***
 LLM_MODEL=glm-4-flash
-
-# 本地 llama.cpp（开启 --api 后）
-LLM_BASE_URL=http://127.0.0.1:8080/v1
-LLM_API_KEY=sk-no-key-required
-LLM_MODEL=local-model
 ```
-
-> 配置优先级：**命令行 `--vault` > 环境变量 > `.env` > `config.json` > 默认值**。
-> 密钥只从本地文件/环境变量读取，`.env` 与 `config.local.json` 已被 `.gitignore` 排除，请勿提交。
 
 ---
 
-## 命令行用法
+## 使用
+
+### CLI
 
 ```bash
-# 构建/增量更新索引
-python3 vault_search.py index --vault /path/to/vault
+# 搜索笔记
+python vault_search.py search "AI 编程技巧"
 
-# 检索（文本结果）
-python3 vault_search.py search "用codex让多个ai智能体分工做自媒体" --top 10
+# 归纳相关笔记
+python vault_search.py aggregate "机器学习最佳实践"
 
-# 检索（JSON，便于脚本调用）
-python3 vault_search.py search "本地部署大模型 显存" --json --top 20
-
-# 归纳汇总（需配置 LLM）
-python3 vault_search.py aggregate "微信对话抽取工具" --top 5
-
-# 索引统计
-python3 vault_search.py stats --vault /path/to/vault
+# 重建索引
+python vault_search.py index --force
 ```
 
----
+### MCP Server
 
-## 作为 MCP server 接入客户端
+启动 MCP server 供 AI 客户端使用：
 
-1. 参照 `mcp.example.json` 注册。以 WorkBuddy / Claude Desktop 为例，把下面内容写进对应 MCP 配置文件（路径替换为你的实际路径）：
+```bash
+python vault_mcp_server.py
+```
+
+在 MCP 客户端（Claude Desktop、WorkBuddy 等）中配置：
 
 ```json
 {
   "mcpServers": {
     "obsidian-vault-search": {
-      "command": "python3",
-      "args": ["/absolute/path/to/obsidian-vault-search-mcp/vault_mcp_server.py"],
-      "env": {
-        "VAULT_PATH": "/absolute/path/to/your/vault",
-        "VAULT_NAME": "MyVault"
-      }
+      "command": "python",
+      "args": ["/path/to/vault_mcp_server.py"]
     }
   }
 }
 ```
 
-2. 配置 LLM（可选，用于汇总/重排）：在 `.env` 或 `config.json` 中设置 `LLM_*`，或在上面的 `env` 里追加。
+---
 
-3. 重启客户端，工具 `search_notes` / `aggregate_notes` / `reindex` / `stats` / `read_note` 即生效。直接对它说「帮我找讲多智能体协作的笔记」「把这几篇微信工具相关的笔记汇总一下」即可。
+## 环境变量
 
-### 可用工具
-
-| 工具 | 作用 |
-|------|------|
-| `search_notes(query, top_k=10)` | 语义召回候选笔记（带链接） |
-| `aggregate_notes(query, top_k=5)` | 召回 + LLM 归纳汇总 + 来源列表 |
-| `reindex(full=false)` | 增量/全量重建索引 |
-| `stats()` | 索引统计 |
-| `read_note(path)` | 读取某篇笔记全文 |
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `VAULT_PATH` | 是 | Obsidian vault 绝对路径 |
+| `VAULT_NAME` | 否 | vault 名称，用于 obsidian:// 深链 |
+| `INDEX_DB` | 否 | 自定义索引数据库路径 |
+| `TOP_K` | 否 | 返回结果数（默认 10） |
+| `ENABLE_RERANK` | 否 | 启用 LLM 重排（true/false） |
+| `LLM_BASE_URL` | 否 | LLM API 端点 |
+| `LLM_API_KEY` | 否 | LLM API Key |
+| `LLM_MODEL` | 否 | LLM 模型名称 |
 
 ---
 
-## 文件结构
+## 安全
+
+- **无硬编码凭证**：所有 API Key 存储在 `.env` 中
+- **本地优先**：索引存储在 SQLite，不发送到云端
+- **隐私保护**：无需 LLM 即可完全离线工作
+- **零依赖**：无外部包需要审计
+
+详见 [SECURITY.md](SECURITY.md)。
+
+---
+
+## 许可证
+
+MIT License - 详见 [LICENSE](LICENSE)。
+
+</div>
+<!-- zh-content-end -->
+
+<!-- en-content-start -->
+<div id="en-content" style="display:none;">
+
+# Obsidian Vault Search MCP
+
+> Find notes by meaning, not just keywords: search through thousands of Obsidian notes using natural language.
+
+A local-first, privacy-preserving MCP server for Obsidian vault search using BM25 retrieval with optional LLM reranking and summarization.
+
+---
+
+## Core Features
+
+- **Semantic Search**: Chinese bigram tokenization + BM25 ranking with title/alias/tags weighting
+- **Local-First & Private**: All indexes stored locally in SQLite, no data sent externally
+- **Incremental Indexing**: Auto-updates based on file modification time
+- **LLM Summarization (Optional)**: Aggregate related notes with AI-powered summary generation
+- **Multi-Provider Support**: OpenAI / DeepSeek / Qwen / GLM / local llama.cpp
+- **Zero Dependencies**: Pure Python standard library, no pip install needed
+- **Cross-Client Compatible**: Works with WorkBuddy, Claude Desktop, Codex, Cline, etc.
+
+---
+
+## Architecture
 
 ```
-obsidian-vault-search-mcp/
-├── config.py              # 配置加载（config.json/.env/env，优先级合并）
-├── llm.py                 # 可选 LLM 接入（OpenAI 兼容，纯 stdlib）
-├── vault_search_core.py   # 检索核心：索引 / BM25 / 可选重排
-├── vault_search.py        # 命令行入口（index/search/aggregate/stats）
-├── vault_mcp_server.py    # MCP server（stdio，5 个工具）
-├── .env.example           # 配置模板（复制为 .env 填写）
-├── config.example.json    # 配置模板（复制为 config.json 填写）
-├── mcp.example.json       # MCP 客户端注册示例
-├── LICENSE                # MIT
-└── README.md
+  Your Notes (.md)
+      │  os.walk scan + frontmatter/title/alias/tags extraction
+      ▼
+  Local Index (SQLite: vault_index.db)  ← Incremental, local only
+      │  BM25 Chinese bigram retrieval + weight boost
+      ▼
+  Candidate Results ──(optional ENABLE_RERANK + LLM)──▶  Rerank
+      │
+      ▼
+  MCP Tools / CLI Output (with obsidian:// or file:// links)
+      │
+      ▼
+  (Optional) aggregate_notes ──▶ LLM Summary + Source List
+```
+
+- **Retrieval** is always local (BM25) - fast, private, free
+- **Semantic layer** (rerank/summarize) is optional: requires LLM config; works without it
+
+---
+
+## Installation
+
+Requires Python 3.8+ (standard library only, no dependencies).
+
+```bash
+git clone https://github.com/johnadams-bot/obsidian-vault-search-mcp.git
+cd obsidian-vault-search-mcp
+```
+
+No `pip install` needed.
+
+---
+
+## Configuration
+
+Copy example files first:
+
+```bash
+cp .env.example .env        # or cp config.example.json config.json
+```
+
+**Minimal setup (search only, no summarization)** — only need `VAULT_PATH`:
+
+```ini
+VAULT_PATH=/absolute/path/to/your/vault
+VAULT_NAME=MyVault          # Optional: for obsidian:// deep links
+```
+
+**Enable LLM summarization/reranking** — add LLM config (choose one):
+
+```ini
+# OpenAI
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=***
+LLM_MODEL=gpt-4o-mini
+
+# DeepSeek
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_API_KEY=***
+LLM_MODEL=deepseek-chat
+
+# Qwen (Alibaba Cloud)
+LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+LLM_API_KEY=***
+LLM_MODEL=qwen-plus
+
+# GLM (Zhipu AI)
+LLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
+LLM_API_KEY=***
+LLM_MODEL=glm-4-flash
 ```
 
 ---
 
-## 隐私与安全
+## Usage
 
-- 索引仅包含笔记的标题、别名、标签、总结、原文摘录等**文本特征**，存于本地 SQLite，不会上传。
-- 未配置 LLM 时，全程离线，无任何网络请求。
-- LLM 仅在你主动配置且调用 `aggregate_notes` / 开启 `ENABLE_RERANK` 时，将「命中文档的摘要片段」发往你指定的端点。
-- 密钥仅存于本地 `.env` / 环境变量，已被 `.gitignore` 排除。
+### CLI
+
+```bash
+# Search notes
+python vault_search.py search "AI programming techniques"
+
+# Aggregate related notes with LLM summary
+python vault_search.py aggregate "machine learning best practices"
+
+# Rebuild index
+python vault_search.py index --force
+```
+
+### MCP Server
+
+Start the MCP server for use with AI clients:
+
+```bash
+python vault_mcp_server.py
+```
+
+Configure in your MCP client (Claude Desktop, WorkBuddy, etc.):
+
+```json
+{
+  "mcpServers": {
+    "obsidian-vault-search": {
+      "command": "python",
+      "args": ["/path/to/vault_mcp_server.py"]
+    }
+  }
+}
+```
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VAULT_PATH` | Yes | Absolute path to your Obsidian vault |
+| `VAULT_NAME` | No | Vault name for obsidian:// links |
+| `INDEX_DB` | No | Custom index database path |
+| `TOP_K` | No | Number of results to return (default: 10) |
+| `ENABLE_RERANK` | No | Enable LLM reranking (true/false) |
+| `LLM_BASE_URL` | No | LLM API endpoint |
+| `LLM_API_KEY` | No | LLM API key |
+| `LLM_MODEL` | No | LLM model name |
+
+---
+
+## Security
+
+- **No hardcoded credentials**: All API keys stored in `.env`
+- **Local-first**: Index stored in SQLite, never sent to cloud
+- **Privacy-preserving**: Works completely offline without LLM
+- **Zero dependencies**: No external packages to audit
+
+See [SECURITY.md](SECURITY.md) for details.
 
 ---
 
 ## License
 
-[MIT](./LICENSE)
+MIT License - see [LICENSE](LICENSE) for details.
+
+</div>
+<!-- en-content-end -->
