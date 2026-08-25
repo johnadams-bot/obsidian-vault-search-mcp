@@ -1,0 +1,22 @@
+# 索引数据库（本地生成，不入库）
+vault_index.db
+*.db
+
+# 本地配置与密钥（切勿提交）
+.env
+.env.local
+config.local.json
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.idea/
+.vscode/

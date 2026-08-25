@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "obsidian-vault-search": {
+      "command": "python3",
+      "args": ["/absolute/path/to/obsidian-vault-search-mcp/vault_mcp_server.py"],
+      "env": {
+        "VAULT_PATH": "/absolute/path/to/your/vault",
+        "VAULT_NAME": "MyVault"
+      }
+    }
+  }
+}
