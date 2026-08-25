@@ -21,25 +21,26 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 - All API keys are stored locally in `.env` files
 - `.env` files are excluded from Git via `.gitignore`
 - No hardcoded credentials in source code
-- Example templates use placeholder values
+- Example templates use placeholder values (`***`)
 
 ### Code Security
-- User input is properly escaped using `escapeHtml()`
-- No `eval()`, `document.write()`, or dynamic function execution
-- Minimal permission principle for workspace access
+- Uses Python standard library only (zero dependencies)
+- No `eval()`, `exec()`, or dynamic function execution
+- User input is properly sanitized
+- SQLite queries use parameterized statements
 
-### Dependency Security
-- Regular `npm audit` and `pip audit` checks
-- Dependencies kept up to date
-- No known vulnerable packages
+### Data Privacy
+- All indexes stored locally (SQLite)
+- No data sent to external servers without explicit LLM configuration
+- Private by default - works offline without API keys
 
 ## Compliance
 
 This project follows these security best practices:
-- [ ] OWASP Top 10 mitigation
-- [ ] Secret scanning enabled
-- [ ] Dependency review enabled
-- [ ] Code scanning (where applicable)
+- [x] No hardcoded credentials
+- [x] Sensitive files excluded from Git
+- [x] Local-first architecture
+- [x] OpenAI-compatible API usage with user-provided keys
 
 ---
 
